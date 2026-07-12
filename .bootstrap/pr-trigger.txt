@@ -1,1 +1,2 @@
 Trigger the observable ASCP v0.2.0-draft.1 publication workflow.
+Diagnostic attempt: verify archive SHA-256 before extraction.
