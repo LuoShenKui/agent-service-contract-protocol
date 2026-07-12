@@ -2,15 +2,17 @@ name: Bootstrap ASCP source
 
 "on":
   workflow_dispatch:
-  issues:
+  pull_request:
     types:
       - opened
+      - synchronize
+      - reopened
 
 permissions:
   contents: write
 
 concurrency:
-  group: ascp-bootstrap
+  group: ascp-bootstrap-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -18,16 +20,17 @@ jobs:
     if: >-
       github.repository == 'LuoShenKui/agent-service-contract-protocol' &&
       (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'issues' &&
-        github.event.issue.user.login == 'LuoShenKui' &&
-        github.event.issue.title == '[ASCP] bootstrap source'))
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.title == '[ASCP] Publish v0.2.0-draft.1'))
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Check out publication branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -74,6 +77,8 @@ jobs:
 
       - name: Commit complete source tree
         shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
         run: |
           set -euo pipefail
 
@@ -88,6 +93,4 @@ jobs:
           fi
 
           git commit -m "publish ASCP v0.2.0-draft.1"
-          git tag -f v0.2.0-draft.1
-          git push origin HEAD:master
-          git push origin refs/tags/v0.2.0-draft.1 --force
+          git push origin "HEAD:${TARGET_BRANCH}"
