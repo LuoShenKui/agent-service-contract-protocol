@@ -1,0 +1,20 @@
+{
+  "offer_id": "off_example123",
+  "schema_version": "email.send/2",
+  "parameters": {
+    "recipient": "recipient@example.com",
+    "subject": "ASCP 0.2 example",
+    "body": "This message is priced and signed without delivery side effects."
+  },
+  "execution": {
+    "max_price": {
+      "currency": "USD",
+      "amount": "0.02"
+    },
+    "require_human_review": true
+  },
+  "billing": {
+    "mode": "monthly_invoice",
+    "arrangement_ref": "enterprise-account-2026"
+  }
+}

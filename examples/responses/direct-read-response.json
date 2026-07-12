@@ -1,0 +1,38 @@
+{
+  "invocation_id": "inv_example123",
+  "flow": "direct",
+  "intent": "email.latest.read",
+  "state": "succeeded",
+  "result": {
+    "from": "service@example.test",
+    "subject": "Welcome to ASCP 0.2",
+    "body": "This result completed in one request and one response."
+  },
+  "billing": {
+    "mode": "free",
+    "state": "not_billable"
+  },
+  "receipt": {
+    "protocol_version": "0.2",
+    "service_id": "urn:ascp:service:reference-email",
+    "receipt_id": "rcp_direct_example",
+    "invocation_id": "inv_example123",
+    "intent": "email.latest.read",
+    "request_digest": "sha256:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+    "outcome": "succeeded",
+    "billing": {
+      "mode": "free",
+      "state": "not_billable"
+    },
+    "audit_root": "sha256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+    "completed_at": "2026-07-12T20:00:00Z",
+    "signature": {
+      "algorithm": "EdDSA",
+      "key_id": "ascp-reference-key",
+      "created_at": "2026-07-12T20:00:00Z",
+      "payload_digest": "sha256:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      "jws": "eyJhbGciOiJFZERTQSJ9.e30.signature"
+    }
+  },
+  "server_request_id": "req_direct_example"
+}

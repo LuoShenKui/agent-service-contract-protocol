@@ -1,0 +1,7 @@
+{
+  "name": "report.pdf",
+  "media_type": "application/pdf",
+  "size": 1024,
+  "digest": "sha256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+  "purpose": "email_attachment"
+}

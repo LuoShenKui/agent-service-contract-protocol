@@ -1,0 +1,36 @@
+name: Protocol change proposal
+description: Propose a normative wire or lifecycle change.
+title: "[Protocol]: "
+labels: [protocol]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Interoperability or reliability problem
+    validations:
+      required: true
+  - type: textarea
+    id: normative
+    attributes:
+      label: Proposed normative behavior
+      description: Include exact MUST/SHOULD language when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security, privacy, payment, and idempotency impact
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required conformance cases
+    validations:
+      required: true

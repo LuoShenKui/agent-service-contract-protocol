@@ -1,0 +1,80 @@
+# Reference-only Kubernetes deployment. It demonstrates hardened pod settings,
+# but the in-memory server still loses state on restart and is not a production
+# persistence profile. Use one replica and replace demo adapters before real use.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ascp-reference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ascp-reference
+  template:
+    metadata:
+      labels:
+        app: ascp-reference
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ascp-reference
+          image: ghcr.io/luoshenkui/ascp-reference:0.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASCP_ADDR
+              value: ":8080"
+            - name: ASCP_BASE_URL
+              value: "https://ascp.example.com"
+            - name: ASCP_DEMO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ascp-reference-demo
+                  key: token
+            - name: ASCP_SIGNING_PRIVATE_KEY_B64
+              valueFrom:
+                secretKeyRef:
+                  name: ascp-reference-signing
+                  key: private-key-b64
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ascp-reference
+spec:
+  selector:
+    app: ascp-reference
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,15 @@
+{
+  "quote_id": "quo_subscription_example",
+  "quote_digest": "sha256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+  "authorization": {
+    "type": "enterprise_policy_approval",
+    "reference": "approval-subscription-example",
+    "principal_id": "demo-user",
+    "audience": "urn:ascp:service:reference-email",
+    "approved_at": "2026-07-12T20:00:00Z",
+    "expires_at": "2026-07-12T20:05:00Z",
+    "binding_digest": "sha256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "policy_version": "mail-policy/7"
+  },
+  "client_task_id": "client-task-subscription-example"
+}

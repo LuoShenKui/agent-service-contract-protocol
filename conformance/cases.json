@@ -1,0 +1,114 @@
+{
+  "version": "0.2",
+  "profile": "direct-and-contract-service",
+  "cases": [
+    {
+      "id": "CAP-001",
+      "name": "Compact capability discovery",
+      "requirement": "The service publishes task-level capability descriptors without requiring clients to load every provider-internal tool schema.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "DIR-001",
+      "name": "One-call free read",
+      "requirement": "A complete provider-declared read-only request can execute through POST /v1/invoke without Options, quote, payment, or Idempotency-Key.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "DIR-002",
+      "name": "Unsafe direct request fails closed",
+      "requirement": "A task requiring a quote or separate approval returns contract_required and does not create the provider side effect.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "DIR-003",
+      "name": "Conditional direct idempotency",
+      "requirement": "Read-only direct work may omit Idempotency-Key; side-effecting or billable direct work requires one before execution.",
+      "automated_by": "pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "OPT-001",
+      "name": "Options is side-effect-free",
+      "requirement": "POST /v1/options may return relevant fields, flow, permissions, files, and billing choices but creates no quote, billable usage, authority, task, or provider effect.",
+      "automated_by": "pkg/server/server_integration_test.go and scripts/validate_specs.py"
+    },
+    {
+      "id": "IDM-001",
+      "name": "Exact idempotent replay",
+      "requirement": "An identical mutation under the same scoped key replays the stored response rather than creating a second contract, task, billing record, or provider effect.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/idempotency_test.go"
+    },
+    {
+      "id": "IDM-002",
+      "name": "Idempotency conflict",
+      "requirement": "The same scoped key with a different request digest is rejected with idempotency_conflict.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/idempotency_test.go"
+    },
+    {
+      "id": "IDM-003",
+      "name": "Unknown outcomes remain locked",
+      "requirement": "A claim is released only when no contract, billing, task, callback, upload, or provider effect could have occurred; ambiguous outcomes require reconciliation.",
+      "automated_by": "pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "FIL-001",
+      "name": "Digest-bound file upload",
+      "requirement": "Upload acceptance verifies owner, token, media type, declared size, digest, expiry, readiness, and scan state before a FileRef can affect execution.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "FIL-002",
+      "name": "File metadata enters the signed quote",
+      "requirement": "Every input FileRef that can affect a contract task is preserved inside the quote signature projection.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "SIG-001",
+      "name": "Service-bound signed quote",
+      "requirement": "A quote identifies the service, actor, principal, exact task, files, callback, price, billing terms, permissions, effects, data use, confirmation, and expiry.",
+      "automated_by": "pkg/ascp/signature_test.go and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "AUT-001",
+      "name": "Independent quote-bound authorization",
+      "requirement": "Natural-language content cannot create authority; commit approval is independently verified and bound to the exact quote digest, principal, audience, and expiry.",
+      "automated_by": "pkg/server/contract_validation_test.go and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "BIL-001",
+      "name": "Multiple billing arrangements",
+      "requirement": "The service can represent free, pay-now, prepaid, subscription, postpaid, monthly invoice, clearing, sponsored, and external-settlement arrangements without treating every call as immediate payment.",
+      "automated_by": "pkg/billing/mock_test.go and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "BIL-002",
+      "name": "Per-call billing only when required",
+      "requirement": "Commit requires BillingAuthorization only when the signed BillingTerms require it; a verified standing arrangement can omit a per-call payment token.",
+      "automated_by": "cmd/ascp-conformance and pkg/server/server_integration_test.go"
+    },
+    {
+      "id": "BIL-003",
+      "name": "Billing binding and ceiling",
+      "requirement": "A billing adapter validates service audience, binding digest, arrangement, mode, expiry, usage, and monetary ceiling before reservation or usage recording.",
+      "automated_by": "pkg/billing/mock_test.go"
+    },
+    {
+      "id": "BIL-004",
+      "name": "No duplicate settlement or over-refund",
+      "requirement": "Reservation, settlement, release, and refund operations are idempotent; cumulative refunds cannot exceed the settled amount.",
+      "automated_by": "pkg/billing/mock_test.go"
+    },
+    {
+      "id": "AUD-001",
+      "name": "Signed invocation audit chain",
+      "requirement": "A direct invocation returns a signed receipt anchored to a verifiable append-only audit hash chain.",
+      "automated_by": "cmd/ascp-conformance and pkg/audit/log_test.go"
+    },
+    {
+      "id": "AUD-002",
+      "name": "Signed task audit chain",
+      "requirement": "A contract task returns a signed completion receipt anchored to a verifiable append-only audit hash chain.",
+      "automated_by": "cmd/ascp-conformance and pkg/audit/log_test.go"
+    }
+  ]
+}

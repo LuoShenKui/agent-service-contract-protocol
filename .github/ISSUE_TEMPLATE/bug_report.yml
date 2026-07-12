@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible implementation or specification defect.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not use this form for security vulnerabilities; follow SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: ASCP version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: sequence
+    attributes:
+      label: Reproduction sequence
+      description: Include sanitized request/response steps and idempotency behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true

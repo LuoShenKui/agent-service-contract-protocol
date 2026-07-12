@@ -1,0 +1,17 @@
+{
+  "intent": "email.send",
+  "goal": "Send one email for the authenticated user",
+  "actor": {
+    "type": "agent",
+    "id": "demo-client"
+  },
+  "principal": {
+    "type": "user",
+    "id": "demo-user"
+  },
+  "budget": {
+    "currency": "USD",
+    "amount": "0.02"
+  },
+  "locale": "en-US"
+}

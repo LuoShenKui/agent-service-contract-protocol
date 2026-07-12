@@ -1,0 +1,652 @@
+openapi: 3.1.0
+info:
+  title: Agent Service Contract Protocol
+  version: 0.2.0-draft.1
+  summary: Compact direct service calls plus signed contracts for paid or consequential work.
+  description: |
+    ASCP lets a platform-owned agent expose task-level capabilities without
+    publishing its complete internal API surface. A complete low-risk request
+    can use the one-call Direct Flow. Optional Options preflight returns only
+    the fields relevant to one task. Paid, variable, irreversible, or otherwise
+    consequential work uses the signed Negotiate / Prepare / Commit flow.
+
+    The protocol supports free service, per-call payment, prepaid balances,
+    subscriptions, postpaid accounts, monthly invoices, clearing accounts,
+    sponsorship, and external settlement. Files are uploaded separately and
+    enter JSON only as owner-bound, digest-bound references.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://service.example.com
+    description: Provider-selected ASCP origin
+security:
+  - bearerAuth: []
+tags:
+  - name: Discovery
+  - name: Direct
+  - name: Contract
+  - name: Files
+  - name: Invocations
+  - name: Tasks
+paths:
+  /.well-known/ascp:
+    get:
+      tags: [Discovery]
+      operationId: getManifest
+      summary: Discover protocol endpoints and service-wide policy.
+      security: []
+      responses:
+        '200':
+          description: Cacheable ASCP service manifest.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/Manifest'
+  /.well-known/ascp/capabilities:
+    get:
+      tags: [Discovery]
+      operationId: listCapabilities
+      summary: Read the compact platform-owned task catalog.
+      description: |
+        Returns task-level routing metadata, not every provider-internal method
+        or complete parameter schema. Use POST /v1/options only after selecting
+        a capability that needs more detail.
+      parameters:
+        - name: q
+          in: query
+          schema: {type: string, maxLength: 512}
+        - name: intent
+          in: query
+          schema: {type: string, maxLength: 256}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 2048}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+      responses:
+        '200':
+          description: Capability catalog page.
+          headers:
+            ETag:
+              schema: {type: string}
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/CapabilityCatalog'
+        '304': {description: Cached catalog is still current.}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /.well-known/jwks.json:
+    get:
+      tags: [Discovery]
+      operationId: getJwks
+      summary: Read public keys used for quotes, receipts, and audit events.
+      security: []
+      responses:
+        '200':
+          description: Ed25519 JSON Web Key Set.
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/JWKSet'
+  /healthz:
+    get:
+      tags: [Discovery]
+      operationId: health
+      summary: Lightweight service health check.
+      security: []
+      responses:
+        '200':
+          description: Service process is responding.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /v1/options:
+    post:
+      tags: [Direct]
+      operationId: inspectTaskOptions
+      summary: Optional side-effect-free semantic preflight.
+      description: |
+        Use this only when the caller does not already know the exact intent,
+        missing fields, suitable flow, file policy, or billing choices. It never
+        creates a quote, task, charge, authority, or provider side effect and
+        therefore does not require an Idempotency-Key.
+      parameters:
+        - $ref: '#/components/parameters/ASCPVersion'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/OptionsRequest'
+          application/json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/OptionsRequest'
+      responses:
+        '200':
+          description: Relevant task requirements and recommended flow.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/OptionsResponse'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '415': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+  /v1/invoke:
+    options:
+      tags: [Direct]
+      operationId: describeInvokeTransport
+      summary: Read ordinary HTTP transport hints for Direct Flow.
+      security: []
+      responses:
+        '204':
+          description: No body; inspect Allow, Accept-Post, and ASCP discovery headers.
+          headers:
+            Allow: {schema: {type: string}}
+            Accept-Post: {schema: {type: string}}
+            ASCP-Options-URI: {schema: {type: string}}
+            ASCP-Capabilities-URI: {schema: {type: string}}
+    post:
+      tags: [Direct]
+      operationId: invokeDirect
+      summary: Execute a complete low-risk request in one call.
+      description: |
+        Idempotency-Key is optional for provider-declared read-only operations.
+        It is mandatory whenever the selected direct plan can create a side
+        effect, reserve value, record billable usage, or otherwise make a retry
+        unsafe. A provider must reject the call with contract_required when the
+        task needs a signed quote or separate confirmation.
+      parameters:
+        - $ref: '#/components/parameters/ASCPVersion'
+        - $ref: '#/components/parameters/OptionalIdempotencyKey'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/DirectInvocationRequest'
+          application/json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/DirectInvocationRequest'
+      responses:
+        '200':
+          description: Direct invocation completed synchronously.
+          headers:
+            ASCP-Version: {$ref: '#/components/headers/ASCPVersion'}
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            Idempotency-Replayed: {$ref: '#/components/headers/IdempotencyReplayed'}
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/DirectInvocationResponse'
+        '202':
+          description: Direct invocation was accepted for bounded asynchronous completion.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/DirectInvocationResponse'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '402': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '413': {$ref: '#/components/responses/Problem'}
+        '415': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/negotiate:
+    post:
+      tags: [Contract]
+      operationId: negotiateContract
+      summary: Ask whether a consequential task can be contracted.
+      parameters:
+        - $ref: '#/components/parameters/ASCPVersion'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/NegotiationRequest'
+          application/json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/NegotiationRequest'
+      responses:
+        '200':
+          description: Supported or unsupported task offer.
+          headers:
+            ASCP-Version: {$ref: '#/components/headers/ASCPVersion'}
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            Idempotency-Retention-Until: {$ref: '#/components/headers/IdempotencyRetention'}
+            Idempotency-Replayed: {$ref: '#/components/headers/IdempotencyReplayed'}
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/NegotiationResponse'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '415': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+  /v1/prepare:
+    post:
+      tags: [Contract]
+      operationId: prepareContract
+      summary: Validate exact terms and produce a binding signed quote.
+      description: Prepare is side-effect-free. Input files, callback, price,
+        billing terms, permissions, data use, confirmation, and expiry are all
+        inside the signed quote.
+      parameters:
+        - $ref: '#/components/parameters/ASCPVersion'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/PrepareRequest'
+          application/json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/PrepareRequest'
+      responses:
+        '201':
+          description: Signed immutable service quote.
+          headers:
+            ASCP-Version: {$ref: '#/components/headers/ASCPVersion'}
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            Idempotency-Retention-Until: {$ref: '#/components/headers/IdempotencyRetention'}
+            Idempotency-Replayed: {$ref: '#/components/headers/IdempotencyReplayed'}
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/Quote'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '413': {$ref: '#/components/responses/Problem'}
+        '415': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+  /v1/commit:
+    post:
+      tags: [Contract]
+      operationId: commitContract
+      summary: Accept a signed quote and create exactly one durable task.
+      description: |
+        The service validates quote ownership and expiry, independent approval,
+        active delegated scopes, and the quote-selected billing arrangement.
+        billing_authorization is required only when the signed billing terms say
+        so; standing subscriptions, invoices, prepaid accounts, clearing, and
+        sponsorship can omit per-call payment credentials.
+      parameters:
+        - $ref: '#/components/parameters/ASCPVersion'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/CommitRequest'
+          application/json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/CommitRequest'
+      responses:
+        '201':
+          description: Durable task created; it may already be terminal.
+          headers:
+            ASCP-Version: {$ref: '#/components/headers/ASCPVersion'}
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            Idempotency-Retention-Until: {$ref: '#/components/headers/IdempotencyRetention'}
+            Idempotency-Replayed: {$ref: '#/components/headers/IdempotencyReplayed'}
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/CommitResponse'
+        '202':
+          description: Durable task accepted and still running.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/CommitResponse'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '402': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '415': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/files/prepare-upload:
+    post:
+      tags: [Files]
+      operationId: prepareFileUpload
+      summary: Create a short-lived, owner-bound upload target.
+      parameters:
+        - $ref: '#/components/parameters/ASCPVersion'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestID'
+      requestBody:
+        required: true
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/FileUploadRequest'
+      responses:
+        '201':
+          description: One-use upload ticket. upload_token is secret.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/FileUploadTicket'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '413': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+  /v1/files/{file_id}/content:
+    parameters:
+      - $ref: '#/components/parameters/FileID'
+      - $ref: '#/components/parameters/ASCPVersion'
+    put:
+      tags: [Files]
+      operationId: uploadFileContent
+      summary: Upload exact bytes to a prepared file target.
+      description: |
+        This route uses the short-lived X-ASCP-Upload-Token instead of an
+        Idempotency-Key. Repeating identical bytes is safe; different bytes for
+        the same file identity are rejected.
+      parameters:
+        - name: X-ASCP-Upload-Token
+          in: header
+          required: true
+          schema: {type: string, minLength: 16, maxLength: 2048}
+        - name: X-ASCP-Content-Digest
+          in: header
+          required: true
+          schema: {type: string, pattern: '^sha256:[A-Za-z0-9_-]{43}$'}
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: {type: string, contentEncoding: binary}
+          text/plain:
+            schema: {type: string}
+          application/pdf:
+            schema: {type: string, contentEncoding: binary}
+      responses:
+        '200':
+          description: Existing identical upload replayed.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/FileRef'
+        '201':
+          description: File bytes accepted and verified.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/FileRef'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '410': {$ref: '#/components/responses/Problem'}
+        '413': {$ref: '#/components/responses/Problem'}
+        '415': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+    get:
+      tags: [Files]
+      operationId: downloadFileContent
+      summary: Download ready file bytes under normal delegated authorization.
+      parameters:
+        - $ref: '#/components/parameters/RequestID'
+      responses:
+        '200':
+          description: File bytes with provider metadata headers.
+          content:
+            application/octet-stream:
+              schema: {type: string, contentEncoding: binary}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '410': {$ref: '#/components/responses/Problem'}
+  /v1/files/{file_id}:
+    parameters:
+      - $ref: '#/components/parameters/FileID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/RequestID'
+    get:
+      tags: [Files]
+      operationId: getFileMetadata
+      summary: Read authoritative file metadata and readiness state.
+      responses:
+        '200':
+          description: Owner-bound file reference.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/FileRef'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '410': {$ref: '#/components/responses/Problem'}
+  /v1/invocations/{invocation_id}:
+    parameters:
+      - $ref: '#/components/parameters/InvocationID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/RequestID'
+    get:
+      tags: [Invocations]
+      operationId: getInvocation
+      summary: Read a direct invocation result by stable identifier.
+      responses:
+        '200':
+          description: Invocation result and signed receipt.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/DirectInvocationResponse'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/invocations/{invocation_id}/audit:
+    parameters:
+      - $ref: '#/components/parameters/InvocationID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/RequestID'
+    get:
+      tags: [Invocations]
+      operationId: exportInvocationAudit
+      summary: Export the signed direct-invocation audit chain.
+      responses:
+        '200':
+          description: Signed audit events and current root.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/AuditExport'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/tasks/{task_id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/RequestID'
+    get:
+      tags: [Tasks]
+      operationId: getTask
+      summary: Read durable contract-task state.
+      responses:
+        '200':
+          description: Current task.
+          headers:
+            ETag:
+              schema: {type: string}
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/Task'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/tasks/{task_id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TaskID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/RequestID'
+    post:
+      tags: [Tasks]
+      operationId: cancelTask
+      summary: Request idempotent cancellation.
+      requestBody:
+        required: false
+        content:
+          application/ascp+json:
+            schema:
+              $ref: '../schemas/ascp-v0.2.schema.json#/$defs/CancelRequest'
+      responses:
+        '200':
+          description: Updated task.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/Task'
+        '400': {$ref: '#/components/responses/Problem'}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '412': {$ref: '#/components/responses/Problem'}
+  /v1/tasks/{task_id}/events:
+    parameters:
+      - $ref: '#/components/parameters/TaskID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/RequestID'
+      - name: Last-Event-ID
+        in: header
+        required: false
+        schema: {type: integer, minimum: 0}
+    get:
+      tags: [Tasks]
+      operationId: streamTaskEvents
+      summary: Read available task events as Server-Sent Events.
+      responses:
+        '200':
+          description: Each SSE data field contains an AuditEvent JSON object.
+          content:
+            text/event-stream:
+              schema: {type: string}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/tasks/{task_id}/audit:
+    parameters:
+      - $ref: '#/components/parameters/TaskID'
+      - $ref: '#/components/parameters/ASCPVersion'
+      - $ref: '#/components/parameters/RequestID'
+    get:
+      tags: [Tasks]
+      operationId: exportTaskAudit
+      summary: Export the signed contract-task audit chain.
+      responses:
+        '200':
+          description: Signed audit events and current root.
+          content:
+            application/ascp+json:
+              schema:
+                $ref: '../schemas/ascp-v0.2.schema.json#/$defs/AuditExport'
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-or-JWT
+  parameters:
+    ASCPVersion:
+      name: ASCP-Version
+      in: header
+      required: false
+      description: Requested wire version; omitted means provider-selected compatible version.
+      schema: {type: string, const: '0.2'}
+    RequestID:
+      name: X-Request-ID
+      in: header
+      required: false
+      description: Caller correlation ID; never grants authority.
+      schema: {type: string, maxLength: 128}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Opaque key scoped by actor, principal, method, and route.
+      schema: {type: string, minLength: 16, maxLength: 255, pattern: '^[!-~]{16,255}$'}
+    OptionalIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Optional for read-only Direct Flow; conditionally mandatory when the provider plan says retry is unsafe.
+      schema: {type: string, minLength: 16, maxLength: 255, pattern: '^[!-~]{16,255}$'}
+    FileID:
+      name: file_id
+      in: path
+      required: true
+      schema: {type: string, minLength: 1, maxLength: 256}
+    InvocationID:
+      name: invocation_id
+      in: path
+      required: true
+      schema: {type: string, minLength: 1, maxLength: 256}
+    TaskID:
+      name: task_id
+      in: path
+      required: true
+      schema: {type: string, minLength: 1, maxLength: 256}
+  headers:
+    ASCPVersion:
+      description: Selected ASCP wire version.
+      schema: {type: string, const: '0.2'}
+    RequestID:
+      description: Service correlation ID.
+      schema: {type: string}
+    IdempotencyRetention:
+      description: Time through which the exact mutation remains replayable.
+      schema: {type: string, format: date-time}
+    IdempotencyReplayed:
+      description: True when the stored response was replayed.
+      schema: {type: string, enum: ['true']}
+    IdempotencyReleased:
+      description: True only when a proven no-effect failure released the claim.
+      schema: {type: string, enum: ['true']}
+  responses:
+    Problem:
+      description: Machine-readable ASCP problem details.
+      headers:
+        ASCP-Version: {$ref: '#/components/headers/ASCPVersion'}
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+        Retry-After:
+          schema: {type: integer, minimum: 0}
+        Idempotency-Released: {$ref: '#/components/headers/IdempotencyReleased'}
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/ascp-v0.2.schema.json#/$defs/Problem'

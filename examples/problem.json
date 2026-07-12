@@ -1,0 +1,10 @@
+{
+  "type": "urn:ascp:problem:idempotency_conflict",
+  "title": "Idempotency conflict",
+  "status": 409,
+  "detail": "The key was already used with a different request payload.",
+  "code": "idempotency_conflict",
+  "category": "conflict",
+  "retryable": false,
+  "request_id": "req_example123"
+}

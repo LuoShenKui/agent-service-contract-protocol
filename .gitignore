@@ -1,0 +1,27 @@
+# Go build and coverage outputs.
+bin/
+coverage.out
+*.test
+
+# Local configuration and secrets.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE and operating-system files.
+.idea/
+.vscode/
+.DS_Store
+
+# Release and generated output.
+dist/
+
+# Generated temporary files.
+tmp/
+*.log
+
+# Python validation cache.
+__pycache__/
+*.py[cod]

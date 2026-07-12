@@ -1,0 +1,6 @@
+{
+  "intent": "email.latest.read",
+  "parameters": {
+    "include_body": true
+  }
+}

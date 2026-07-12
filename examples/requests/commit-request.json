@@ -1,0 +1,31 @@
+{
+  "quote_id": "quo_example123",
+  "quote_digest": "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "authorization": {
+    "type": "explicit_user_confirmation",
+    "reference": "approval-system-reference",
+    "principal_id": "demo-user",
+    "audience": "urn:ascp:service:reference-email",
+    "approved_at": "2026-07-12T20:00:00Z",
+    "expires_at": "2026-07-12T20:05:00Z",
+    "binding_digest": "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "policy_version": "interactive-confirmation/1"
+  },
+  "billing_authorization": {
+    "mode": "pay_now",
+    "authorization_ref": "tokenized-payment-reference",
+    "payer": {
+      "type": "user",
+      "id": "demo-user"
+    },
+    "audience": "urn:ascp:service:reference-email",
+    "maximum_amount": {
+      "currency": "USD",
+      "amount": "0.01"
+    },
+    "expires_at": "2026-07-12T20:05:00Z",
+    "binding_digest": "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "usage": "single_use"
+  },
+  "client_task_id": "client-task-example-123"
+}

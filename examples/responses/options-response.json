@@ -1,0 +1,57 @@
+{
+  "supported": true,
+  "resolved_intent": "email.send",
+  "recommended_flow": "contract",
+  "direct_eligible": false,
+  "reason_code": "contract_required",
+  "reason": "Sending external email is irreversible and requires a signed quote.",
+  "parameters": [
+    {
+      "name": "recipient",
+      "description": "RFC 5322 recipient address",
+      "required": true,
+      "sensitive": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 320
+      }
+    }
+  ],
+  "required_scopes": ["email.send"],
+  "billing_options": [
+    {
+      "mode": "pay_now",
+      "authorization_required": true,
+      "settlement_timing": "after_success"
+    },
+    {
+      "mode": "monthly_invoice",
+      "arrangement_required": true,
+      "settlement_timing": "invoice"
+    }
+  ],
+  "input_file_policy": {
+    "accepted": true,
+    "maximum_files": 10,
+    "maximum_file_bytes": 10485760,
+    "maximum_total_bytes": 26214400,
+    "upload_supported": true,
+    "reference_supported": true,
+    "malware_scan_required": true
+  },
+  "estimated_price": {
+    "minimum": {
+      "currency": "USD",
+      "amount": "0.00"
+    },
+    "maximum": {
+      "currency": "USD",
+      "amount": "0.01"
+    },
+    "basis": "one message"
+  },
+  "schema_version": "email.send/2",
+  "expires_at": "2026-07-12T20:10:00Z",
+  "server_request_id": "req_example_options"
+}

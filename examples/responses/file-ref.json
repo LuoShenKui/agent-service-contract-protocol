@@ -1,0 +1,13 @@
+{
+  "file_id": "fil_example123",
+  "uri": "ascp-file://fil_example123",
+  "name": "report.pdf",
+  "media_type": "application/pdf",
+  "size": 1024,
+  "digest": "sha256:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+  "disposition": "attachment",
+  "purpose": "email_attachment",
+  "state": "ready",
+  "scan_status": "clean",
+  "expires_at": "2026-07-13T20:00:00Z"
+}

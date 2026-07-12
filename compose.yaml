@@ -1,0 +1,16 @@
+services:
+  ascp-reference:
+    build: .
+    ports:
+      - "8088:8080"
+    environment:
+      ASCP_ADDR: ":8080"
+      ASCP_BASE_URL: "http://localhost:8088"
+      ASCP_DEMO_TOKEN: "ascp-demo-token"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

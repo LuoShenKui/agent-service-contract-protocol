@@ -1,0 +1,59 @@
+{
+  "service_id": "urn:ascp:service:reference-email",
+  "revision": "email-capabilities/2",
+  "capabilities": [
+    {
+      "intent": "email.latest.read",
+      "version": "email.latest.read/1",
+      "summary": "Read the newest visible email",
+      "default_flow": "direct",
+      "supported_flows": ["direct"],
+      "side_effect_class": "read_only",
+      "risk_class": "low_private_data_access",
+      "required_scopes": ["email.read"],
+      "billing_modes": ["free"],
+      "parameter_names": ["include_body"],
+      "options_supported": true,
+      "input_file_policy": {
+        "accepted": false
+      },
+      "output_modes": ["inline", "artifact_ref"],
+      "maximum_inline_bytes": 32768
+    },
+    {
+      "intent": "email.send",
+      "version": "email.send/2",
+      "summary": "Send one email with optional attachments",
+      "default_flow": "contract",
+      "supported_flows": ["contract"],
+      "side_effect_class": "irreversible_external_communication",
+      "risk_class": "medium_irreversible_communication",
+      "required_scopes": ["email.send"],
+      "billing_modes": [
+        "pay_now",
+        "prepaid_balance",
+        "subscription",
+        "postpaid_account",
+        "monthly_invoice",
+        "clearing_account",
+        "sponsored",
+        "external_settlement"
+      ],
+      "parameter_names": ["recipient", "subject", "body"],
+      "options_supported": true,
+      "input_file_policy": {
+        "accepted": true,
+        "maximum_files": 10,
+        "maximum_file_bytes": 10485760,
+        "maximum_total_bytes": 26214400,
+        "allowed_media_types": ["text/*", "image/*", "application/pdf"],
+        "upload_supported": true,
+        "reference_supported": true,
+        "malware_scan_required": true
+      },
+      "output_modes": ["artifact_ref"]
+    }
+  ],
+  "generated_at": "2026-07-12T20:00:00Z",
+  "expires_at": "2026-07-12T20:15:00Z"
+}

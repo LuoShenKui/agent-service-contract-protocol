@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.2'
+          cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install specification validators
+        run: python -m pip install --disable-pip-version-check pyyaml==6.0.3 jsonschema==4.26.0
+
+      - name: Validate release commit
+        run: make check
+
+      - name: Build cross-platform binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for target in \
+            linux/amd64 linux/arm64 \
+            darwin/amd64 darwin/arm64 \
+            windows/amd64; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            suffix=""
+            archive_ext="tar.gz"
+            if [[ "$GOOS" == "windows" ]]; then
+              suffix=".exe"
+              archive_ext="zip"
+            fi
+            package="ascp-${GITHUB_REF_NAME}-${GOOS}-${GOARCH}"
+            mkdir -p "dist/$package"
+            for command in server client conformance; do
+              CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" \
+                go build -trimpath -ldflags='-s -w' \
+                -o "dist/$package/ascp-${command}${suffix}" "./cmd/ascp-${command}"
+            done
+            cp README.md README.zh-CN.md LICENSE CHANGELOG.md "dist/$package/"
+            if [[ "$archive_ext" == "zip" ]]; then
+              (cd dist && zip -q -r "$package.zip" "$package")
+            else
+              tar -C dist -czf "dist/$package.tar.gz" "$package"
+            fi
+            rm -rf "dist/$package"
+          done
+          git archive --format=tar.gz --prefix="agent-service-contract-protocol-${GITHUB_REF_NAME}/" \
+            -o "dist/agent-service-contract-protocol-${GITHUB_REF_NAME}.tar.gz" HEAD
+          (cd dist && sha256sum ./* > SHA256SUMS)
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          prerelease=""
+          if [[ "$GITHUB_REF_NAME" =~ (draft|alpha|beta|rc) ]]; then
+            prerelease="--prerelease"
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --generate-notes \
+            --title "ASCP $GITHUB_REF_NAME" \
+            $prerelease
